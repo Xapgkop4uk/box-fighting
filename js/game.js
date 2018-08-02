@@ -58,10 +58,10 @@ Game.acceleratePlayer = function(id,x,y){
     clearInterval(player.stopTimer)
     player.target = {x:x, y:y};
     player.accelerateTimer = setInterval(() => {
-        player.moveSpeed += 0.02;
+        player.moveSpeed += 0.1;
         const angle = Phaser.Math.angleBetween(player.x, player.y, x, y)
-        player.body.velocity.x += Math.cos(angle) * player.moveSpeed;
-        player.body.velocity.y += Math.sin(angle) * player.moveSpeed;
+        player.body.velocity.x = player.body.velocity.x + Math.cos(angle) * player.moveSpeed;
+        player.body.velocity.y = player.body.velocity.y + Math.sin(angle) * player.moveSpeed;
     }, 10)
 };
 
@@ -71,14 +71,20 @@ Game.stopPlayer = function(id){
 
     player.stopTimer = setInterval(() => {
         if( player.moveSpeed <= 0) {
+            player.body.velocity.x = 0;
+            player.body.velocity.y = 0;
             player.animations.stop();
             return;
         }
         player.animations.play('move');
-        player.moveSpeed -= 0.02;
+        player.moveSpeed -= 0.1;
         const angle = Phaser.Math.angleBetween(player.x,player.y, player.target.x, player.target.y)
-        player.body.velocity.x += Math.cos(angle) * player.moveSpeed;
-        player.body.velocity.y += Math.sin(angle) * player.moveSpeed;
+        const cos =  Math.cos(angle)
+        const sin = Math.sin(angle)
+        const vX = player.body.velocity.x
+        const vY = player.body.velocity.y
+        player.body.velocity.x = vX * cos > 0 ? vX - cos * player.moveSpeed : vX + cos * player.moveSpeed;
+        player.body.velocity.y = vY * sin > 0 ? vY - sin * player.moveSpeed : vY + sin * player.moveSpeed;
     }, 10)
 };
 

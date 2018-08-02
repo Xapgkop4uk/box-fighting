@@ -31,30 +31,55 @@ Game.create = function(){
         layer = map.createLayer(i);
     }
     layer.inputEnabled = true; // Allows clicking on the map ; it's enough to do it on the last layer
-    layer.events.onInputUp.add(Game.getCoordinates, this);
+    layer.events.onInputDown.add(Game.accselerateTo, this);
+    layer.events.onInputUp.add(Game.stopAccselerate, this);
     Client.askNewPlayer();
 };
 
-Game.getCoordinates = function(layer,pointer){
-    Client.sendClick(pointer.worldX,pointer.worldY);
+Game.accselerateTo = function(layer,pointer){
+    Client.sendClickDown(pointer.worldX,pointer.worldY);
 };
+
+Game.stopAccselerate = function(){
+    Client.sendClickUp();
+}
 
 Game.addNewPlayer = function(id,x,y){
     Game.playerMap[id] = game.add.sprite(x,y,dinos[Math.floor(Math.random() * dinos.length)]);
     Game.playerMap[id].animations.add('move', [...Array(10).keys()], 10, true);
+    Game.playerMap[id].moveSpeed = 0;
+    game.physics.arcade.enable(Game.playerMap[id]);
+    Game.playerMap[id].body.collideWorldBounds = true;
 };
 
-Game.movePlayer = function(id,x,y){
-    var player = Game.playerMap[id];
+Game.acceleratePlayer = function(id,x,y){
+    const player = Game.playerMap[id];
     player.animations.play('move');
-    var distance = Phaser.Math.distance(player.x,player.y,x,y);
-    var tween = game.add.tween(player);
+    clearInterval(player.stopTimer)
+    player.target = {x:x, y:y};
+    player.accelerateTimer = setInterval(() => {
+        player.moveSpeed += 0.02;
+        const angle = Phaser.Math.angleBetween(player.x, player.y, x, y)
+        player.body.velocity.x += Math.cos(angle) * player.moveSpeed;
+        player.body.velocity.y += Math.sin(angle) * player.moveSpeed;
+    }, 10)
+};
 
-    tween.onComplete.add(() => player.animations.stop(), this);
+Game.stopPlayer = function(id){
+    const player = Game.playerMap[id];
+    clearInterval(player.accelerateTimer)
 
-    var duration = distance*10;
-    tween.to({x:x,y:y}, duration);
-    tween.start();
+    player.stopTimer = setInterval(() => {
+        if( player.moveSpeed <= 0) {
+            player.animations.stop();
+            return;
+        }
+        player.animations.play('move');
+        player.moveSpeed -= 0.02;
+        const angle = Phaser.Math.angleBetween(player.x,player.y, player.target.x, player.target.y)
+        player.body.velocity.x += Math.cos(angle) * player.moveSpeed;
+        player.body.velocity.y += Math.sin(angle) * player.moveSpeed;
+    }, 10)
 };
 
 Game.removePlayer = function(id){
@@ -63,12 +88,15 @@ Game.removePlayer = function(id){
 };
 
 checkOverlap = (spriteA, spriteB) => {
+    if(spriteA && spriteB){
+            
+        
+        var boundsA = spriteA.getBounds();
+        var boundsB = spriteB.getBounds();
 
-    var boundsA = spriteA.getBounds();
-    var boundsB = spriteB.getBounds();
-
-    return Phaser.Rectangle.intersects(boundsA, boundsB);
-
+        return Phaser.Rectangle.intersects(boundsA, boundsB);
+    }
+    else return false
 }
 
 Game.update = () => {

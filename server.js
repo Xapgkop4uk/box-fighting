@@ -28,11 +28,16 @@ io.on('connection',function(socket){
         socket.emit('allplayers',getAllPlayers());
         socket.broadcast.emit('newplayer',socket.player);
 
-        socket.on('click',function(data){
-            console.log('click to '+data.x+', '+data.y);
+        socket.on('down',function(data){
+            console.log('down '+data.x+', '+data.y);
             socket.player.x = data.x;
             socket.player.y = data.y;
-            io.emit('move',socket.player);
+            io.emit('accelerate',socket.player);
+        });
+
+        socket.on('up',function(){
+            console.log('up ');
+            io.emit('stop',socket.player);
         });
 
         socket.on('disconnect',function(){
